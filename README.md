@@ -8,6 +8,6 @@ go run .
 ```
 
 ## Зависимости:
-- [fsnotify](github.com/fsnotify/fsnotify)
-- [telegram-bot-api/v5](github.com/go-telegram-bot-api/telegram-bot-api/v5)
-- [viper](github.com/spf13/viper)
+- [fsnotify](https://github.com/fsnotify/fsnotify)
+- [telegram-bot-api/v5](https://github.com/go-telegram-bot-api/telegram-bot-api/v5)
+- [viper](https://github.com/spf13/viper)
