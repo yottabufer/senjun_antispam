@@ -18,7 +18,7 @@ type NaiveBayes struct {
 // preprocess_for_text выполняет предобработку текста:
 // приводит к нижнему регистру
 // удаляет пунктуацию
-// разбивает на слова preprocess_for_text
+// разбивает на слова
 func (bayes *NaiveBayes) preprocess_for_text(text string) []string {
 	text = strings.ToLower(text)
 	text = strings.Map(func(r rune) rune {
