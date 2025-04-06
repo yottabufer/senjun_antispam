@@ -7,6 +7,14 @@
 go run .
 ```
 
+## В корне в config.yaml нужно разместить:
+```yaml
+telegram:
+  token: "str_token"
+  chat_id: int_chat_id
+
+```
+
 ## Зависимости:
 - [fsnotify](https://github.com/fsnotify/fsnotify)
 - [telegram-bot-api/v5](https://github.com/go-telegram-bot-api/telegram-bot-api)
