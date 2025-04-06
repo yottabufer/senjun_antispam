@@ -5,8 +5,6 @@ import (
 	"log"
 	"os"
 
-	_ "embed"
-
 	"github.com/fsnotify/fsnotify"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/spf13/viper"
