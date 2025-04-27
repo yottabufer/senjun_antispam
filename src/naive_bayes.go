@@ -49,12 +49,12 @@ func (bayes *NaiveBayes) train_model(messages []string, labels []bool) {
 	bayes.ham_words = make(map[string]float64)
 	spam_total := 0
 	ham_total := 0
-	unique_word := make(map[string]bool)
+	unique_word := make(map[string]struct{})
 
 	for i, msg := range messages {
 		words := bayes.preprocess_for_text(msg)
 		for _, word := range words {
-			unique_word[word] = true
+			unique_word[word] = struct{}{}
 			if labels[i] {
 				bayes.spam_words[word]++
 				spam_total++
