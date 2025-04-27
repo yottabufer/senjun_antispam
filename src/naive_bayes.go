@@ -22,7 +22,7 @@ type NaiveBayes struct {
 func (bayes *NaiveBayes) preprocess_for_text(text string) []string {
 	text = strings.ToLower(text)
 	text = strings.Map(func(r rune) rune {
-		if unicode.IsPunct(r) || unicode.IsSymbol(r) {
+		if unicode.IsPunct(r) {
 			return -1
 		}
 		return r
