@@ -12,7 +12,9 @@ go run .
 telegram:
   token: "str_token"
   chat_id: int_chat_id
-
+filter:
+  message_count_to_white_list: 555
+  min_message_length: 444
 ```
 
 ## Зависимости:

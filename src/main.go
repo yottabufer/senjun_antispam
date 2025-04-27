@@ -131,7 +131,7 @@ func main() {
 
 		// Обновление счетчика сообщений, добавление в белый список после 5 сообщений
 		count := filter.increment_message_count(user_id)
-		if count >= 5 {
+		if count >= viper.GetInt("filter.message_count_to_white_list") {
 			if err := filter.add_to_white_list(user_id); err != nil {
 				log.Printf("Ошибка добавления в белый список:\n%v", err)
 			} else {
@@ -145,7 +145,7 @@ func main() {
 			update.Message.Document != nil {
 			continue
 		}
-		if len(update.Message.Text) < 15 {
+		if len(update.Message.Text) < viper.GetInt("filter.min_message_length") {
 			continue
 		}
 
