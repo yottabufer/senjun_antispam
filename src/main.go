@@ -133,17 +133,8 @@ func main() {
 			continue
 		}
 
-		// Обновление счетчика сообщений, добавление в белый список после 5 сообщений
-		count := filter.increment_message_count(user_id)
-		if count >= viper.GetInt("filter.message_count_to_white_list") {
-			if err := filter.add_to_white_list(user_id); err != nil {
-				log.Printf("Ошибка добавления в белый список:\n%v", err)
-			} else {
-				log.Printf("Пользователь %d добавлен в белый список", user_id)
-			}
-		}
-
 		// Пропускаем медиафайлы и короткие сообщения
+		// TODO: Пока не знаю как обрабатывать всевозможные файлы, но обязательно вернусь
 		if update.Message.Photo != nil ||
 			update.Message.Video != nil ||
 			update.Message.Document != nil {
@@ -158,6 +149,17 @@ func main() {
 		log.Printf("Сообщение: %s | Спам: %v", update.Message.Text, prediction)
 		if prediction {
 			delete_message(bot, update.Message)
+			continue
+		}
+
+		// Обновление счетчика сообщений, добавление в белый список после 5 сообщений
+		count := filter.increment_message_count(user_id)
+		if count >= viper.GetInt("filter.message_count_to_white_list") {
+			if err := filter.add_to_white_list(user_id); err != nil {
+				log.Printf("Ошибка добавления в белый список:\n%v", err)
+			} else {
+				log.Printf("Пользователь %d добавлен в белый список", user_id)
+			}
 		}
 	}
 }
