@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"log"
 	"os"
+	"strings"
+	"unicode"
 
 	"github.com/fsnotify/fsnotify"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -70,9 +72,12 @@ func main() {
 	bayes := NaiveBayes{
 		exclude: make(map[string]struct{}),
 	}
-	exclude_list, _ := read_file_lines("data_text/exclude_data.txt")
-	for _, word := range exclude_list {
-		bayes.exclude[word] = struct{}{}
+	exclude_content, _ := os.ReadFile("data_text/exclude_data.txt")
+	exclude_words := strings.FieldsFunc(string(exclude_content), func(r rune) bool {
+		return r == ',' || unicode.IsSpace(r)
+	})
+	for _, word := range exclude_words {
+		bayes.exclude[strings.TrimSpace(word)] = struct{}{}
 	}
 
 	// Инициализация спам-фильтра
@@ -115,7 +120,6 @@ func main() {
 	tg_update := tgbotapi.NewUpdate(0)
 	tg_update.Timeout = 60
 	updates := bot.GetUpdatesChan(tg_update)
-
 	for update := range updates {
 		if update.Message == nil {
 			continue

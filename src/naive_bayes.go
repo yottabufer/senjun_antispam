@@ -85,6 +85,10 @@ func (bayes *NaiveBayes) predict_for_message(msg string) bool {
 
 	words := bayes.preprocess_for_text(msg)
 
+	if len(words) == 0 {
+		return false
+	}
+
 	total := bayes.spam_count + bayes.ham_count
 	// Начальные вероятности классов (логарифм для устойчивости)
 	spam_prob := math.Log(float64(bayes.spam_count) / float64(total))
