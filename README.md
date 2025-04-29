@@ -15,6 +15,8 @@ telegram:
 filter:
   message_count_to_white_list: 555
   min_message_length: 444
+logging:
+  level: "debug"
 ```
 
 ## Зависимости:

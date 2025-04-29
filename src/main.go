@@ -65,11 +65,13 @@ func main() {
 	if err := viper.ReadInConfig(); err != nil {
 		log.Fatalf("Error reading config.yaml file:\n%v", err)
 	}
-
+	logger := &Logger{
+		level: strings.ToLower(viper.GetString("logging.level")),
+	}
 	// горячая перезагрузка конфига
 	viper.WatchConfig()
 	viper.OnConfigChange(func(e fsnotify.Event) {
-		log.Printf("config.yml has been updated: %s", e.Name)
+		logger.Info("config.yml has been updated: %s", e.Name)
 	})
 
 	// Настройка наивного байеса
@@ -93,7 +95,7 @@ func main() {
 	// Загрузка белого списка
 	whiteList, err := read_white_list("src/data_text/white_list.txt")
 	if err != nil {
-		log.Printf("Error loading the whitelist:\n%v", err)
+		logger.Error("Error loading the whitelist:\n%v", err)
 	} else {
 		filter.white_list = whiteList
 	}
@@ -101,23 +103,23 @@ func main() {
 	// Обучение модели на исторических данных
 	messages, labels, err := load_data()
 	if err != nil {
-		log.Fatal("Error loading data for training the model:\n", err)
+		logger.Error("Error loading data for training the model:\n%v", err)
 	}
 	bayes.train_model(messages, labels)
 
 	// Инициализация Telegram-бота
 	token := viper.GetString("telegram.token")
 	if token == "" {
-		log.Fatal("Telegram bot token not found in config.yaml")
+		logger.Error("Telegram bot token not found in config.yaml")
 	}
 	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
-		log.Fatal(err)
+		logger.Error("%v", err)
 	}
 	log.Printf("Initialization %s", bot.Self.UserName)
 	chat_id := viper.GetInt64("telegram.chat_id")
 	if chat_id == 0 {
-		log.Fatal("chat_id not found in config.yaml")
+		logger.Error("chat_id not found in config.yaml")
 	}
 
 	// Настройка получения обновлений от телеграмма, можно увеличить цикл обновления
@@ -133,7 +135,7 @@ func main() {
 
 		// Пропускаем пользователей из белого списка
 		if filter.is_white_list(user_id) {
-			log.Printf("User %d is on the whitelist: ", user_id)
+			logger.Debug("User %d is on the whitelist", user_id)
 			continue
 		}
 
@@ -160,9 +162,9 @@ func main() {
 		count := filter.increment_message_count(user_id)
 		if count >= viper.GetInt("filter.message_count_to_white_list") {
 			if err := filter.add_to_white_list(user_id); err != nil {
-				log.Printf("The error of adding to the whitelist:\n%v", err)
+				logger.Error("The error of adding to the whitelist:\n%v", err)
 			} else {
-				log.Printf("User %d added to the whitelist", user_id)
+				logger.Debug("User %d added to the whitelist", user_id)
 			}
 		}
 	}
