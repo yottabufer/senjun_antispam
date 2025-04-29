@@ -43,7 +43,7 @@ func (filter *SpamFilter) add_to_white_list(userID int64) error {
 	}
 
 	filter.white_list[userID] = true
-	file, err := os.OpenFile("data_text/white_list.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	file, err := os.OpenFile("src/data_text/white_list.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}

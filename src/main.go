@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"log"
 	"os"
 	"strings"
@@ -29,11 +30,11 @@ func read_file_lines(path string) ([]string, error) {
 
 // загружает обучающие данные (спам и ham) для модели
 func load_data() ([]string, []bool, error) {
-	spam, err := read_file_lines("data_text/spam_data.txt")
+	spam, err := read_file_lines("src/data_text/spam_data.txt")
 	if err != nil {
 		return nil, nil, err
 	}
-	ham, err := read_file_lines("data_text/ham_data.txt")
+	ham, err := read_file_lines("src/data_text/ham_data.txt")
 	if err != nil {
 		return nil, nil, err
 	}
@@ -50,29 +51,32 @@ func load_data() ([]string, []bool, error) {
 func delete_message(bot *tgbotapi.BotAPI, msg *tgbotapi.Message) {
 	delete_config := tgbotapi.NewDeleteMessage(msg.Chat.ID, msg.MessageID)
 	if _, err := bot.Request(delete_config); err != nil {
-		log.Printf("Ошибка удаления соощения:\n%v", err)
+		log.Printf("Message deletion error:\n%v", err)
 	}
 }
 
 func main() {
-	viper.SetConfigFile("../config.yaml")
+	// Достаём параметры запуска
+	env_path := flag.String("env-path", "../config.yaml", "Path to config file")
+	flag.Parse()
+	viper.SetConfigFile(*env_path)
 	viper.AutomaticEnv()
 
 	if err := viper.ReadInConfig(); err != nil {
-		log.Fatalf("Ошибка чтения конфига:\n%v", err)
+		log.Fatalf("Error reading config.yaml file:\n%v", err)
 	}
 
 	// горячая перезагрузка конфига
 	viper.WatchConfig()
 	viper.OnConfigChange(func(e fsnotify.Event) {
-		log.Printf("Конфиг обновлен: %s", e.Name)
+		log.Printf("config.yml has been updated: %s", e.Name)
 	})
 
 	// Настройка наивного байеса
 	bayes := NaiveBayes{
 		exclude: make(map[string]struct{}),
 	}
-	exclude_content, _ := os.ReadFile("data_text/exclude_data.txt")
+	exclude_content, _ := os.ReadFile("src/data_text/exclude_data.txt")
 	exclude_words := strings.FieldsFunc(string(exclude_content), func(r rune) bool {
 		return r == ',' || unicode.IsSpace(r)
 	})
@@ -87,9 +91,9 @@ func main() {
 	}
 
 	// Загрузка белого списка
-	whiteList, err := read_white_list("data_text/white_list.txt")
+	whiteList, err := read_white_list("src/data_text/white_list.txt")
 	if err != nil {
-		log.Printf("Ошибка загрузки белого списка:\n%v", err)
+		log.Printf("Error loading the whitelist:\n%v", err)
 	} else {
 		filter.white_list = whiteList
 	}
@@ -97,23 +101,23 @@ func main() {
 	// Обучение модели на исторических данных
 	messages, labels, err := load_data()
 	if err != nil {
-		log.Fatal("Ошибка загрузки данных:\n", err)
+		log.Fatal("Error loading data for training the model:\n", err)
 	}
 	bayes.train_model(messages, labels)
 
 	// Инициализация Telegram-бота
 	token := viper.GetString("telegram.token")
 	if token == "" {
-		log.Fatal("Токен не найден в конфиге")
+		log.Fatal("Telegram bot token not found in config.yaml")
 	}
 	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Printf("Инициализация %s", bot.Self.UserName)
+	log.Printf("Initialization %s", bot.Self.UserName)
 	chat_id := viper.GetInt64("telegram.chat_id")
 	if chat_id == 0 {
-		log.Fatal("chat_id не найден в конфиге")
+		log.Fatal("chat_id not found in config.yaml")
 	}
 
 	// Настройка получения обновлений от телеграмма, можно увеличить цикл обновления
@@ -129,7 +133,7 @@ func main() {
 
 		// Пропускаем пользователей из белого списка
 		if filter.is_white_list(user_id) {
-			log.Printf("Пользоватеть %d в белом списке", user_id)
+			log.Printf("User %d is on the whitelist: ", user_id)
 			continue
 		}
 
@@ -146,7 +150,7 @@ func main() {
 
 		// Классификация сообщения и удаление сообщения
 		prediction := bayes.predict_for_message(update.Message.Text)
-		log.Printf("Сообщение: %s | Спам: %v", update.Message.Text, prediction)
+		log.Printf("Message: %s | Spam: %v", update.Message.Text, prediction)
 		if prediction {
 			delete_message(bot, update.Message)
 			continue
@@ -156,9 +160,9 @@ func main() {
 		count := filter.increment_message_count(user_id)
 		if count >= viper.GetInt("filter.message_count_to_white_list") {
 			if err := filter.add_to_white_list(user_id); err != nil {
-				log.Printf("Ошибка добавления в белый список:\n%v", err)
+				log.Printf("The error of adding to the whitelist:\n%v", err)
 			} else {
-				log.Printf("Пользователь %d добавлен в белый список", user_id)
+				log.Printf("User %d added to the whitelist", user_id)
 			}
 		}
 	}
