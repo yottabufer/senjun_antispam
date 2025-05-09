@@ -14,7 +14,7 @@ import (
 )
 
 // читает все строки из файла по указанному пути, принимает путь к файлу
-func read_file_lines(path string) ([]string, error) {
+func readFileLines(path string) ([]string, error) {
 	var lines []string
 	file, err := os.Open(path)
 	if err != nil {
@@ -29,12 +29,12 @@ func read_file_lines(path string) ([]string, error) {
 }
 
 // загружает обучающие данные (спам и ham) для модели
-func load_data() ([]string, []bool, error) {
-	spam, err := read_file_lines("src/data_text/spam_data.txt")
+func loadData() ([]string, []bool, error) {
+	spam, err := readFileLines("src/data_text/spam_data.txt")
 	if err != nil {
 		return nil, nil, err
 	}
-	ham, err := read_file_lines("src/data_text/ham_data.txt")
+	ham, err := readFileLines("src/data_text/ham_data.txt")
 	if err != nil {
 		return nil, nil, err
 	}
@@ -46,9 +46,9 @@ func load_data() ([]string, []bool, error) {
 	return messages, labels, nil
 }
 
-// delete_message удаляет указанное сообщение в телеге
+// deleteMessage удаляет указанное сообщение в телеге
 // Принимает экземпляр бота и сообщение, которое нужно удалить
-func delete_message(bot *tgbotapi.BotAPI, msg *tgbotapi.Message) {
+func deleteMessage(bot *tgbotapi.BotAPI, msg *tgbotapi.Message) {
 	delete_config := tgbotapi.NewDeleteMessage(msg.Chat.ID, msg.MessageID)
 	if _, err := bot.Request(delete_config); err != nil {
 		log.Printf("Message deletion error:\n%v", err)
@@ -57,25 +57,25 @@ func delete_message(bot *tgbotapi.BotAPI, msg *tgbotapi.Message) {
 
 func main() {
 	// Достаём параметры запуска
-	env_path := flag.String("env-path", "../config.yaml", "Path to config file")
+	configPath := flag.String("env-path", "../config.yaml", "Path to config file")
 	flag.Parse()
-	viper.SetConfigFile(*env_path)
+	viper.SetConfigFile(*configPath)
 	viper.AutomaticEnv()
 
 	if err := viper.ReadInConfig(); err != nil {
 		log.Fatalf("Error reading config.yaml file:\n%v", err)
 	}
-	logger := &Logger{
+	logger := &logger{
 		level: strings.ToLower(viper.GetString("logging.level")),
 	}
 	// горячая перезагрузка конфига
 	viper.WatchConfig()
 	viper.OnConfigChange(func(e fsnotify.Event) {
-		logger.Info("config.yml has been updated: %s", e.Name)
+		logger.info("config.yml has been updated: %s", e.Name)
 	})
 
 	// Настройка наивного байеса
-	bayes := NaiveBayes{
+	bayes := naiveBayes{
 		exclude: make(map[string]struct{}),
 	}
 	exclude_content, _ := os.ReadFile("src/data_text/exclude_data.txt")
@@ -87,55 +87,55 @@ func main() {
 	}
 
 	// Инициализация спам-фильтра
-	filter := &SpamFilter{
-		white_list:         make(map[int64]bool),
-		user_message_count: make(map[int64]int),
+	spamFilter := &SpamFilter{
+		whiteList:        make(map[int64]bool),
+		userMessageCount: make(map[int64]int),
 	}
 
 	// Загрузка белого списка
-	whiteList, err := read_white_list("src/data_text/white_list.txt")
+	whiteList, err := loadWhiteList("src/data_text/white_list.txt")
 	if err != nil {
-		logger.Error("Error loading the whitelist:\n%v", err)
+		logger.error("Error loading the whitelist:\n%v", err)
 	} else {
-		filter.white_list = whiteList
+		spamFilter.whiteList = whiteList
 	}
 
 	// Обучение модели на исторических данных
-	messages, labels, err := load_data()
+	messages, labels, err := loadData()
 	if err != nil {
-		logger.Error("Error loading data for training the model:\n%v", err)
+		logger.error("Error loading data for training the model:\n%v", err)
 	}
-	bayes.train_model(messages, labels)
+	bayes.trainModel(messages, labels)
 
 	// Инициализация Telegram-бота
 	token := viper.GetString("telegram.token")
 	if token == "" {
-		logger.Error("Telegram bot token not found in config.yaml")
+		logger.error("Telegram bot token not found in config.yaml")
 	}
 	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
-		logger.Error("%v", err)
+		logger.error("%v", err)
 	}
 	log.Printf("Initialization %s", bot.Self.UserName)
-	chat_id := viper.GetInt64("telegram.chat_id")
-	if chat_id == 0 {
-		logger.Error("chat_id not found in config.yaml")
+	chatID := viper.GetInt64("telegram.chat_id")
+	if chatID == 0 {
+		logger.error("chatID not found in config.yaml")
 	}
 
 	// Настройка получения обновлений от телеграмма, можно увеличить цикл обновления
-	tg_update := tgbotapi.NewUpdate(0)
-	tg_update.Timeout = 60
-	updates := bot.GetUpdatesChan(tg_update)
+	tgUpdate := tgbotapi.NewUpdate(0)
+	tgUpdate.Timeout = 60
+	updates := bot.GetUpdatesChan(tgUpdate)
 	for update := range updates {
 		if update.Message == nil {
 			continue
 		}
 
-		user_id := update.Message.From.ID
+		userID := update.Message.From.ID
 
 		// Пропускаем пользователей из белого списка
-		if filter.is_white_list(user_id) {
-			logger.Debug("User %d is on the whitelist", user_id)
+		if spamFilter.isInWhiteList(userID) {
+			logger.debug("User %d is on the whitelist", userID)
 			continue
 		}
 
@@ -151,20 +151,20 @@ func main() {
 		}
 
 		// Классификация сообщения и удаление сообщения
-		prediction := bayes.predict_for_message(update.Message.Text)
+		prediction := bayes.predictMessage(update.Message.Text)
 		log.Printf("Message: %s | Spam: %v", update.Message.Text, prediction)
 		if prediction {
-			delete_message(bot, update.Message)
+			deleteMessage(bot, update.Message)
 			continue
 		}
 
 		// Обновление счетчика сообщений, добавление в белый список после 5 сообщений
-		count := filter.increment_message_count(user_id)
+		count := spamFilter.incrementMessageCount(userID)
 		if count >= viper.GetInt("filter.message_count_to_white_list") {
-			if err := filter.add_to_white_list(user_id); err != nil {
-				logger.Error("The error of adding to the whitelist:\n%v", err)
+			if err := spamFilter.addToWhiteList(userID); err != nil {
+				logger.error("The error of adding to the whitelist:\n%v", err)
 			} else {
-				logger.Debug("User %d added to the whitelist", user_id)
+				logger.debug("User %d added to the whitelist", userID)
 			}
 		}
 	}
