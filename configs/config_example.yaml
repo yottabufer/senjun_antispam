@@ -1,0 +1,8 @@
+telegram:
+  token: "qwe"
+  chat_id: -100987654321
+filter:
+  message_count_to_white_list: 123
+  min_message_length: 123
+logging:
+  level: "debug"
