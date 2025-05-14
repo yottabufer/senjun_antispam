@@ -2,17 +2,9 @@
 
 ## Бот для удаления плохих сообщений 0.1
 
-### Бот запускает из /src
+### Пример запуска бота из корневой директории, поддерживает флаг "--env-path" для указания где лежит config
 ```go
-go run .
-```
-
-## В корне в config.yaml нужно разместить:
-```yaml
-telegram:
-  token: "str_token"
-  chat_id: int_chat_id
-
+go run ./src --env-path="configs/config.yaml"
 ```
 
 ## Зависимости:
