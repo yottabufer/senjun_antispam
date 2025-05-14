@@ -1,5 +1,5 @@
 telegram:
-  token: "qwe"
+  token: "tg_bot_token"
   chat_id: -100987654321
 filter:
   message_count_to_white_list: 123
