@@ -1,4 +1,4 @@
-package main
+package classifier
 
 import (
 	"math"
@@ -6,12 +6,12 @@ import (
 	"unicode"
 )
 
-type naiveBayes struct {
+type NaiveBayes struct {
 	spamCount        int                 // количество спам-сообщений
 	hamCount         int                 // количество не-спам-сообщений
 	spamWords        map[string]float64  // словарь с частотами слов в спам-сообщениях
 	hamWords         map[string]float64  // словарь с частотами слов в не-спам сообщениях
-	exclude          map[string]struct{} // Словарь исключений
+	Exclude          map[string]struct{} // Словарь исключений
 	totalUniqueWords int                 // общее количество уникальных слов
 }
 
@@ -19,7 +19,7 @@ type naiveBayes struct {
 // приводит к нижнему регистру
 // удаляет пунктуацию
 // разбивает на слова
-func (bayes *naiveBayes) preprocessText(text string) []string {
+func (bayes *NaiveBayes) preprocessText(text string) []string {
 	text = strings.ToLower(text)
 	text = strings.Map(func(r rune) rune {
 		if unicode.IsPunct(r) {
@@ -32,7 +32,7 @@ func (bayes *naiveBayes) preprocessText(text string) []string {
 	filtered := make([]string, 0, len(words))
 
 	for _, word := range words {
-		if _, excluded := bayes.exclude[word]; !excluded {
+		if _, excluded := bayes.Exclude[word]; !excluded {
 			filtered = append(filtered, word)
 		}
 	}
@@ -40,11 +40,11 @@ func (bayes *naiveBayes) preprocessText(text string) []string {
 	return filtered
 }
 
-// trainModel обучает модель на наборе сообщений
+// TrainModel обучает модель на наборе сообщений
 // :param:messages: список текстовых сообщений
 // :param:labels: список меток (true — спам, false — неспам)
 // метод вычисляет частоты слов для каждого класса и применяет сглаживание Лапласа
-func (bayes *naiveBayes) trainModel(messages []string, labels []bool) {
+func (bayes *NaiveBayes) TrainModel(messages []string, labels []bool) {
 	bayes.spamWords = make(map[string]float64)
 	bayes.hamWords = make(map[string]float64)
 	spamTotal := 0
@@ -78,10 +78,10 @@ func (bayes *naiveBayes) trainModel(messages []string, labels []bool) {
 	}
 }
 
-// predictMessage определяет, является ли сообщение спамом.
+// PredictMessage определяет, является ли сообщение спамом.
 // Возвращает true, если вероятность спама выше вероятности не-спама
 // Использует https://ru.wikipedia.org/wiki/Преобразование_Лапласа для устойчивости вычислений
-func (bayes *naiveBayes) predictMessage(msg string) bool {
+func (bayes *NaiveBayes) PredictMessage(msg string) bool {
 
 	words := bayes.preprocessText(msg)
 

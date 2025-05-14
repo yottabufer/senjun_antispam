@@ -1,4 +1,4 @@
-module github.com/yottabufer/senjun_antispam
+module senjun_antispam
 
 go 1.24.2
 
